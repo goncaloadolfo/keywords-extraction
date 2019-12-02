@@ -1,0 +1,4 @@
+src/.idea
+src/__pycache__
+src/files/wiki-news-300d-1M.vec
+src/files/dataset_pickle.p
