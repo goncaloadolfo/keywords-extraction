@@ -1,0 +1,45 @@
+## weight_method=unitary && priors=uniform
+precision: 0.042
+recall: 0.028
+mean_average_precision: 0.016
+
+## weight_method=unitary && priors=sentence_pos
+precision: 
+recall:
+mean_average_precision: 
+
+## weight_method=unitary && priors=tfidf
+precision: 0.049
+recall: 0.033
+mean_average_precision: 0.020
+
+## weight_method=co_ocurrence && priors=uniform
+precision:
+recall:
+mean_average_precision: 
+
+## weight_method=co_ocurrence && priors=sentence_pos
+precision:
+recall:
+mean_average_precision: 
+
+## weight_method=co_ocurrence && priors=tfidf
+precision:
+recall:
+mean_average_precision: 
+
+## weight_method=str_similarity && priors=uniform
+precision:
+recall:
+mean_average_precision: 
+
+## weight_method=str_similariry && priors=sentence_pos
+precision:
+recall:
+mean_average_precision: 
+
+## weight_method=str_similarity && priors=tfidf
+precision:
+recall:
+mean_average_precision: 
+

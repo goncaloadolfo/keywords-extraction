@@ -1,0 +1,10 @@
+(1) split document into sentences
+(2) create weight matrix
+
+for each sentente:
+	(3) reset sentence nodes list
+	for each candidate:
+		if candidate in sentence:
+			(4) create node if not already exists
+			(5) update node edges
+			(6) add node to sentence nodes list
