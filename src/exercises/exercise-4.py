@@ -2,22 +2,25 @@
 Web server serving html page with NYT articles key phrases.
 """
 
+import operator
 from urllib.request import urlopen
 from xml.dom import minidom
 
+import numpy as np
 import tornado.ioloop
 from networkx import pagerank
 from sklearn.feature_extraction.text import TfidfVectorizer
-from tornado.web import RequestHandler, Application
+from tornado.web import RequestHandler, Application, StaticFileHandler
 
 from graph_constructor import UNITARY_WEIGHTS, GraphBuilder
 from utils import PRIORS_UNIFORM, get_keyphrases
 
-# url and global cache variables
+# server port, rss url and web files paths
 SERVER_PORT = 8888
 RSS_URL = "https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml"
-cached_articles = None
-cached_page = None
+TEMPLATE_PATH = "./tornado_templates/index.html"
+STYLESHEET_FOLDER = "./css"
+JS_FOLDER = "./js"
 
 # xml tags
 ARTICLE_TAG = "item"
@@ -36,29 +39,13 @@ priors_method = PRIORS_UNIFORM  # {PRIORS_UNIFORM, PRIORS_SENTENCE_POS, PRIORS_T
 class PageHandler(RequestHandler):
 
     def get(self):
-        global cached_articles, cached_page
-
-        try:
-            rss = request_rss()
-            articles = read_news(rss)
-
-            if check_articles_change(articles):
-                keyphrases = extract_keyphrases(articles)
-                html_page = build_html_page(articles, keyphrases)
-                self.write(html_page)
-
-                cached_articles = articles
-                cached_page = html_page
-
-            else:
-                self.write(cached_page)
-
-        except Exception:
-            self.send_error()
-
-
-def check_articles_change(articles: list) -> bool:
-    return True
+        rss = request_rss()
+        articles = read_news(rss)
+        keyphrases = extract_keyphrases(articles)
+        ocurrences = count_ocurrences(keyphrases)
+        dict_encoded_articles = dict_encode(articles, keyphrases)
+        self.render(TEMPLATE_PATH, articles=articles, keyphrases=keyphrases, kp_ocurrences=ocurrences,
+                    dict_encoded_articles=dict_encoded_articles)
 
 
 def request_rss() -> str:
@@ -113,24 +100,37 @@ def extract_keyphrases(article_objs: list) -> list:
     return results
 
 
-def build_html_page(articles: list, keyphrases: list) -> str:
-    html_page = ""
+def dict_encode(articles: list, keyphrases: list) -> list:
+    d = []
 
-    for article_i in range(len(articles)):
-        article = articles[article_i]
-        article_keyphrases = keyphrases[article_i]
+    for i in range(len(articles)):
+        article = articles[i]
 
         title = article.get_title()
         link = article.get_link()
+        kps = keyphrases[i]
 
-        html_article = "<div> " \
-                       "<p>{}</p>" \
-                       "<p>{}</p>" \
-                       "<a href='{}'>article link</a>" \
-                       "</div>".format(title, article_keyphrases, link)
-        html_page += html_article
+        article_dict = {'title': title, 'link': link, 'kps': kps}
+        d.append(article_dict)
 
-    return html_page
+    return d
+
+
+def count_ocurrences(articles_keyphrases: list) -> list:
+    unique_keyphrases = np.unique(articles_keyphrases)
+    kps_counter = []
+
+    for keyphrase_i in range(len(unique_keyphrases)):
+        keyphrase = unique_keyphrases[keyphrase_i]
+        counter = 0
+
+        for article_kps in articles_keyphrases:
+            if keyphrase in article_kps:
+                counter += 1
+
+        kps_counter.append((keyphrase, counter))
+
+    return sorted(kps_counter, key=operator.itemgetter(1), reverse=True)
 
 
 def simple_test():
@@ -144,14 +144,15 @@ def simple_test():
     articles_keyphrases = extract_keyphrases(articles)
     print("keyphrases for example doc: ", articles_keyphrases[0])
 
-    html_page = build_html_page(articles, articles_keyphrases)
-    print("html page: ", html_page)
-
 
 def main():
     # simple_test()
 
-    app = Application([(r"/", PageHandler)])
+    handlers = [(r"/", PageHandler),
+                ("/css/(.*)", StaticFileHandler, {"path": STYLESHEET_FOLDER},),
+                ("/js/(.*)", StaticFileHandler, {"path": JS_FOLDER},)]
+
+    app = Application(handlers)
     app.listen(SERVER_PORT)
     print("server listening on port {} ...".format(SERVER_PORT))
     tornado.ioloop.IOLoop.current().start()

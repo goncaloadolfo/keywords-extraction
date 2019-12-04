@@ -16,14 +16,30 @@ MEAN_PRECISION5_KEY = "mean_precision_5"
 MEAN_AVERAGE_PRECISION_KEY = "mean_average_precision"
 
 
-def __precision(retrieved_keyphrases, relevant_keyphrases):
-    nr_common_keyphrases = len(np.intersect1d(retrieved_keyphrases, relevant_keyphrases))
+def soft_common_keyphrases(retrieved_keyphrases, relevant_keyphrases):
+    n = 0
+
+    for rkp in retrieved_keyphrases:
+        for tkp in relevant_keyphrases:
+            if rkp in tkp or tkp in rkp:
+                n += 1
+                break
+
+    return n
+
+
+def __precision(retrieved_keyphrases, relevant_keyphrases, soft=False):
+    nr_common_keyphrases = len(np.intersect1d(retrieved_keyphrases, relevant_keyphrases)) \
+        if not soft else soft_common_keyphrases(retrieved_keyphrases, relevant_keyphrases)
+
     # proportion of retrieved keyphrases that are relevant
     return nr_common_keyphrases / len(retrieved_keyphrases)
 
 
-def __recall(retrieved_keyphrases, relevant_keyphrases):
-    nr_common_keyphrases = len(np.intersect1d(retrieved_keyphrases, relevant_keyphrases))
+def __recall(retrieved_keyphrases, relevant_keyphrases, soft=False):
+    nr_common_keyphrases = len(np.intersect1d(retrieved_keyphrases, relevant_keyphrases)) \
+        if not soft else soft_common_keyphrases(retrieved_keyphrases, relevant_keyphrases)
+
     # proportion of relevant documents retrieved
     return nr_common_keyphrases / len(relevant_keyphrases)
 
@@ -35,7 +51,7 @@ def __f1_score(precision, recall):
 
 def __precision_n(retrieved_keyphrases, relevant_keyphrases, n):
     # precision at n-th retrieved keyphrase
-    return __precision(retrieved_keyphrases[:n], relevant_keyphrases)
+    return __precision(retrieved_keyphrases[:n], relevant_keyphrases, soft=True)
 
 
 def __average_precision(retrieved_keyphrases, relevant_keyphrases):
@@ -65,8 +81,8 @@ def model_evaluation(documents_retrieved_keyphrases, ground_truth):
         flat_ground_truth = [keyphrase for sublist in doc_ground_truth for keyphrase in sublist]
 
         # calc evaluation metrics
-        precision = __precision(retrieved_phrases, flat_ground_truth)
-        recall = __recall(retrieved_phrases, flat_ground_truth)
+        precision = __precision(retrieved_phrases, flat_ground_truth, soft=True)
+        recall = __recall(retrieved_phrases, flat_ground_truth, soft=True)
         f1_score = __f1_score(precision, recall)
         precision_5 = __precision_n(retrieved_phrases, flat_ground_truth, 5)
         average_precision = __average_precision(retrieved_phrases, flat_ground_truth)

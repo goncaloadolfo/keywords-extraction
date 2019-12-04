@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>NYT Sports</title>
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <script src="../js/index.js"></script>
+</head>
+
+<body onload="onloadHandler('{{ json_encode(dict_encoded_articles) }}')">
+    <div class="container">
+
+        <div class="row">
+            <div id="keyphrases_list" class="col">
+                <ul class="list-group">
+                    {% for kp, counter in kp_ocurrences %}
+                    <li name="{{kp}}" class="list-group-item d-flex justify-content-between align-items-center"
+                        onclick="selectedKP(this)">
+                        {{ kp }}
+                        <span class="badge badge-primary badge-pill">{{ counter }}</span>    
+                    </li>
+                    {% end %}            
+                </ul>
+            </div>
+
+            <div id="articles_list" class="col"> </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
