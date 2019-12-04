@@ -8,9 +8,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from doc_reader import read_dataset_from_pickle, DATASET_PICKLE_PATH
 from evaluation_functions import *
-from graph_constructor import GraphBuilder, UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS
+from graph_constructor import GraphBuilder, CO_OCCURRENCES_WEIGHTS
 from utils import sentence_pos_priors, tfidf_priors, reduce_tfidf_array, get_keyphrases, PRIORS_UNIFORM, \
-    PRIORS_SENTENCE_POS, PRIORS_TFIDF
+    PRIORS_SENTENCE_POS
 
 ###
 # system parameters
