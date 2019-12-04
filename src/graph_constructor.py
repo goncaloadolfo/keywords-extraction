@@ -70,11 +70,11 @@ class GraphBuilder:
         self.__document = document
         self.__background_collection = background_collection
         self.__candidates = np.array(candidates)
+        self.__n = n
         self.__weight_matrix = self.__calculate_weight_matrix(weight_method)
         self.__current_sentence_nodes = []
         self.__graph = nx.Graph()
         self.__node_sentence_indexes = {}
-        self.__n = n
 
     @staticmethod
     def split_into_sentences(document: str) -> list:
@@ -103,7 +103,7 @@ class GraphBuilder:
 
                     # if candidate was not seen in previous sentences
                     if candidate not in self.__node_sentence_indexes.keys():
-                        self.__node_sentence_indexes[candidate] = sentence_i
+                        self.__node_sentence_indexes[candidate] = len(doc_sentences) - sentence_i
 
         return self.__graph
 
@@ -151,19 +151,27 @@ class GraphBuilder:
                         if candidate1 in doc_tokens and candidate2 in doc_tokens:
                             counter_matrix[c1_i, c2_i] += 1
 
+            return counter_matrix
+
         elif weight_method == CANDIDATE_SIMILARITY_WEIGHTS:
             sim_matrix = np.zeros((nr_candidates, nr_candidates), dtype=float)
             vectors: dict
 
-            with open(WORDS_VECTORS_PATH, "rb") as file:
+            with open("../" + WORDS_VECTOR_PICKLE, "rb") as file:
                 vectors = pickle.load(file)
+
+            possible_words = vectors.keys()
 
             for c1_i in range(nr_candidates):
                 for c2_i in range(nr_candidates):
-                    c1_vector = vectors[self.__candidates[c1_i]]
-                    c2_vector = vectors[self.__candidates[c2_i]]
-                    cosine_sim = -cosine(c1_vector, c2_vector) + 1
-                    sim_matrix[c1_i, c2_i] = cosine_sim
+                    candidate1 = self.__candidates[c1_i]
+                    candidate2 = self.__candidates[c2_i]
+
+                    if candidate1 in possible_words and candidate2 in possible_words:
+                        c1_vector = vectors[self.__candidates[c1_i]]
+                        c2_vector = vectors[self.__candidates[c2_i]]
+                        cosine_sim = -cosine(c1_vector, c2_vector) + 1
+                        sim_matrix[c1_i, c2_i] = cosine_sim
 
             return sim_matrix
 

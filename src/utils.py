@@ -61,10 +61,8 @@ def top5_keyphrases(page_rank_results: dict) -> np.ndarray:
 #####
 # priors calculation
 def sentence_pos_priors(candidate_sentence: dict) -> dict:
-    sentences_indexes = list(candidate_sentence.values())
-    sentences_sum = np.sum(sentences_indexes)
-    nr_sentences = np.max(sentences_indexes)
-    return {candidate: (nr_sentences + 1 - candidate_sentence[candidate]) / sentences_sum
+    sentences_indexes_sum = np.sum(list(candidate_sentence.values()))
+    return {candidate: candidate_sentence[candidate] / sentences_indexes_sum
             for candidate in candidate_sentence.keys()}
 
 

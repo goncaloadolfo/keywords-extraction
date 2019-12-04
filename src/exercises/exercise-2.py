@@ -8,15 +8,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from doc_reader import read_dataset_from_pickle, DATASET_PICKLE_PATH
 from evaluation_functions import *
-from graph_constructor import GraphBuilder, UNITARY_WEIGHTS
+from graph_constructor import GraphBuilder, UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS
 from utils import sentence_pos_priors, tfidf_priors, reduce_tfidf_array, get_keyphrases, PRIORS_UNIFORM, \
     PRIORS_SENTENCE_POS, PRIORS_TFIDF
 
 ###
 # system parameters
-n = 1
-weight_method = UNITARY_WEIGHTS
-priors_method = PRIORS_SENTENCE_POS
+n = 1  # 1 <= n <= 3
+weight_method = CO_OCCURRENCES_WEIGHTS  # {UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS}
+priors_method = PRIORS_UNIFORM  # {PRIORS_UNIFORM, PRIORS_SENTENCE_POS, PRIORS_TFIDF}
 ###
 
 # load documents
@@ -34,7 +34,7 @@ vocab = np.array(tfidf_obj.get_feature_names())
 results = {}
 
 for doc_id_index in range(len(doc_ids)):
-    print("document ", doc_id_index)
+    print("document {}/{}".format(doc_id_index, len(all_docs)))
     doc_id = doc_ids[doc_id_index]
     doc = all_docs[doc_id]
     candidates = tfidf_obj.fit([doc]).get_feature_names()

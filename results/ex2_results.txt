@@ -29,9 +29,9 @@ recall:
 mean_average_precision: 
 
 ## weight_method=str_similarity && priors=uniform
-precision:
-recall:
-mean_average_precision: 
+precision: 0.024
+recall: 0.016
+mean_average_precision: 0.009 
 
 ## weight_method=str_similariry && priors=sentence_pos
 precision:
