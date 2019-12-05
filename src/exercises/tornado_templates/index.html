@@ -6,10 +6,15 @@
     <meta charset="utf-8">
     <title>NYT Sports</title>
     <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="../js/index.js"></script>
 </head>
 
-<body onload="onloadHandler('{{ json_encode(dict_encoded_articles) }}')">
+<body onload="onloadHandler('{{ json_encode(dict_encoded_articles) }}', '{{ json_encode(trends) }}')">
+
+    <h3 class="font-weight-bolder" 
+        style="color: midnightblue; margin: 2% 2% 2% 10%;">NYT Sports</h3>
+
     <div class="container">
 
         <div class="row">
@@ -27,6 +32,11 @@
 
             <div id="articles_list" class="col"> </div>
         </div>
+    </div>
+
+    <div class="text-center">
+        Word Cloud 
+        <svg id="word_cloud" style="margin: 0; padding: 0; border: 0"></svg>
     </div>
 
 </body>

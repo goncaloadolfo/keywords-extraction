@@ -80,6 +80,18 @@ class GraphBuilder:
     def split_into_sentences(document: str) -> list:
         return nltk.sent_tokenize(document)
 
+    @staticmethod
+    def candidate_vector(all_vectors, stored_words, candidate):
+        candidate_words = nltk.word_tokenize(candidate)
+
+        v = []
+        for word in candidate_words:
+            if word not in stored_words:
+                return None
+            v.append(all_vectors[word])
+
+        return np.mean(v, axis=0)
+
     def build_graph(self) -> nx.Graph:
         doc_sentences = GraphBuilder.split_into_sentences(self.__document)
 
@@ -167,9 +179,10 @@ class GraphBuilder:
                     candidate1 = self.__candidates[c1_i]
                     candidate2 = self.__candidates[c2_i]
 
-                    if candidate1 in possible_words and candidate2 in possible_words:
-                        c1_vector = vectors[self.__candidates[c1_i]]
-                        c2_vector = vectors[self.__candidates[c2_i]]
+                    c1_vector = GraphBuilder.candidate_vector(vectors, possible_words, candidate1)
+                    c2_vector = GraphBuilder.candidate_vector(vectors, possible_words, candidate2)
+
+                    if c1_vector is not None and c2_vector is not None:
                         cosine_sim = -cosine(c1_vector, c2_vector) + 1
                         sim_matrix[c1_i, c2_i] = cosine_sim
 

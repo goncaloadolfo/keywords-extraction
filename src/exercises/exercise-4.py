@@ -13,7 +13,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from tornado.web import RequestHandler, Application, StaticFileHandler
 
 from graph_constructor import UNITARY_WEIGHTS, GraphBuilder
-from utils import PRIORS_UNIFORM, get_keyphrases
+from utils import PRIORS_UNIFORM, get_keyphrases, top_keyphrases
 
 # server port, rss url and web files paths
 SERVER_PORT = 8888
@@ -35,17 +35,22 @@ max_iter = 50
 weight_method = UNITARY_WEIGHTS  # {UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS}
 priors_method = PRIORS_UNIFORM  # {PRIORS_UNIFORM, PRIORS_SENTENCE_POS, PRIORS_TFIDF}
 
+# others
+NR_TRENDS_KPS = 10
+
 
 class PageHandler(RequestHandler):
 
     def get(self):
         rss = request_rss()
         articles = read_news(rss)
+        trends = trends_kps(articles)
+        print(trends)
         keyphrases = extract_keyphrases(articles)
         ocurrences = count_ocurrences(keyphrases)
         dict_encoded_articles = dict_encode(articles, keyphrases)
         self.render(TEMPLATE_PATH, articles=articles, keyphrases=keyphrases, kp_ocurrences=ocurrences,
-                    dict_encoded_articles=dict_encoded_articles)
+                    dict_encoded_articles=dict_encoded_articles, trends=trends)
 
 
 def request_rss() -> str:
@@ -82,6 +87,20 @@ def read_news(xml_rss: str) -> list:
     return article_objs
 
 
+def graph_kps_system(document: str, want_scores=False):
+    candidates = TfidfVectorizer(stop_words="english", ngram_range=(1, n)).fit([document]).get_feature_names()
+    doc_graph = GraphBuilder(document, None, candidates, weight_method, n).build_graph()
+    final_prestige = pagerank(doc_graph, alpha=1.0 - d, max_iter=max_iter, weight='weight')
+
+    if not want_scores:
+        return get_keyphrases([final_prestige])
+
+    else:
+        kps = top_keyphrases(final_prestige, NR_TRENDS_KPS)
+        return {kp: final_prestige[kp] if type(final_prestige[kp]) == float else final_prestige[kp][0][0]
+                for kp in kps}
+
+
 def extract_keyphrases(article_objs: list) -> list:
     results = []
 
@@ -91,13 +110,22 @@ def extract_keyphrases(article_objs: list) -> list:
         description = article.get_description()
 
         document = title + description if title[-1] == '.' else title + "." + description
-        candidates = TfidfVectorizer(stop_words="english", ngram_range=(1, n)).fit([document]).get_feature_names()
-        doc_graph = GraphBuilder(document, None, candidates, weight_method, n).build_graph()
-        final_prestige = pagerank(doc_graph, alpha=1.0 - d, max_iter=max_iter, weight='weight')
-        keyphrases = get_keyphrases([final_prestige])
+        keyphrases = graph_kps_system(document)
         results.append(keyphrases)
 
     return results
+
+
+def trends_kps(articles: list) -> dict:
+    single_doc = ""
+
+    for article in articles:
+        title = article.get_title()
+        description = article.get_description()
+        doc_str = title + description if title[-1] == '.' else title + "." + description
+        single_doc += doc_str if doc_str[-1] == "." else doc_str + "."
+
+    return graph_kps_system(single_doc, want_scores=True)
 
 
 def dict_encode(articles: list, keyphrases: list) -> list:

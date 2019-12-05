@@ -3,19 +3,23 @@ Exercise 2 - Improvement of graph ranking; evaluation of
 different approaches on a data set.
 """
 
+import time
+
 import networkx as nx
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from doc_reader import read_dataset_from_pickle, DATASET_PICKLE_PATH
 from evaluation_functions import *
-from graph_constructor import GraphBuilder, UNITARY_WEIGHTS
+from graph_constructor import GraphBuilder, UNITARY_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS
 from utils import sentence_pos_priors, tfidf_priors, reduce_tfidf_array, get_keyphrases, PRIORS_UNIFORM, \
-    PRIORS_SENTENCE_POS
+    PRIORS_SENTENCE_POS, PRIORS_TFIDF
+
+t0 = time.time()
 
 ###
 # system parameters
 n = 1  # 1 <= n <= 3
-weight_method = UNITARY_WEIGHTS  # {UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS}
+weight_method = CANDIDATE_SIMILARITY_WEIGHTS  # {UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS}
 priors_method = PRIORS_UNIFORM  # {PRIORS_UNIFORM, PRIORS_SENTENCE_POS, PRIORS_TFIDF}
 ###
 
@@ -63,8 +67,10 @@ for doc_id_index in range(len(doc_ids)):
 train_gt = ground_truth_reader("../" + TRAIN_GT_PATH)
 test_gt = ground_truth_reader("../" + TEST_GT_PATH)
 gt = {**train_gt, **test_gt}
-evaluation_results = model_evaluation(results, gt)
+evaluation_results = model_evaluation(results, gt, soft=True)
+timestamp = time.time() - t0
 
 print("precision: ", evaluation_results[MEAN_PRECISION_KEY])
 print("recall: ", evaluation_results[MEAN_RECALL_KEY])
 print("mean average precision: ", evaluation_results[MEAN_AVERAGE_PRECISION_KEY])
+print("processing time: ", timestamp)

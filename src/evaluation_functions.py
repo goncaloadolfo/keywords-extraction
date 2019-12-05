@@ -49,21 +49,25 @@ def __f1_score(precision, recall):
     return (2 * precision * recall) / (precision + recall) if precision + recall != 0 else 0.0
 
 
-def __precision_n(retrieved_keyphrases, relevant_keyphrases, n):
+def __precision_n(retrieved_keyphrases, relevant_keyphrases, n, soft=False):
     # precision at n-th retrieved keyphrase
-    return __precision(retrieved_keyphrases[:n], relevant_keyphrases, soft=True)
+    return __precision(retrieved_keyphrases[:n], relevant_keyphrases, soft=soft)
 
 
-def __average_precision(retrieved_keyphrases, relevant_keyphrases):
+def __average_precision(retrieved_keyphrases, relevant_keyphrases, soft=False):
+
+    def is_recall_point(retrieved_kp, relevant_kps):
+        return retrieved_kp in relevant_kps if not soft else soft_common_keyphrases([retrieved_kp], relevant_kps) != 0
+
     # average of precision in each recall point
-    precisions = [__precision_n(retrieved_keyphrases, relevant_keyphrases, i + 1)
+    precisions = [__precision_n(retrieved_keyphrases, relevant_keyphrases, i + 1, soft)
                   for i in range(len(retrieved_keyphrases))
-                  if retrieved_keyphrases[i] in relevant_keyphrases]
+                  if is_recall_point(retrieved_keyphrases[i], relevant_keyphrases)]
 
     return np.sum(precisions) / len(relevant_keyphrases)
 
 
-def model_evaluation(documents_retrieved_keyphrases, ground_truth):
+def model_evaluation(documents_retrieved_keyphrases, ground_truth, soft=False):
     results = {}
     doc_ids = documents_retrieved_keyphrases.keys()
 
@@ -81,11 +85,11 @@ def model_evaluation(documents_retrieved_keyphrases, ground_truth):
         flat_ground_truth = [keyphrase for sublist in doc_ground_truth for keyphrase in sublist]
 
         # calc evaluation metrics
-        precision = __precision(retrieved_phrases, flat_ground_truth, soft=True)
-        recall = __recall(retrieved_phrases, flat_ground_truth, soft=True)
+        precision = __precision(retrieved_phrases, flat_ground_truth, soft=soft)
+        recall = __recall(retrieved_phrases, flat_ground_truth, soft=soft)
         f1_score = __f1_score(precision, recall)
-        precision_5 = __precision_n(retrieved_phrases, flat_ground_truth, 5)
-        average_precision = __average_precision(retrieved_phrases, flat_ground_truth)
+        precision_5 = __precision_n(retrieved_phrases, flat_ground_truth, 5, soft=soft)
+        average_precision = __average_precision(retrieved_phrases, flat_ground_truth, soft=soft)
 
         precisions.append(precision)
         recalls.append(recall)

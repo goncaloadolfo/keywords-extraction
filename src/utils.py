@@ -24,7 +24,7 @@ def candidates_prestige_lists(page_rank_results: dict) -> tuple:
 
 def get_keyphrases(args: list):
     if len(args) == TOP_KEYPHRASES_ARGS:
-        return top5_keyphrases(*args)
+        return top_keyphrases(*args)
 
     elif len(args) == THR_KEYPHRASES_ARGS:
         return thr_keyphrases(*args)
@@ -38,18 +38,18 @@ def thr_keyphrases(page_rank_results: dict, thr: float) -> np.ndarray:
     return candidates[np.where(prestige > thr)[0]]
 
 
-def top5_keyphrases(page_rank_results: dict) -> np.ndarray:
+def top_keyphrases(page_rank_results: dict, n=5) -> np.ndarray:
     candidates, prestige = candidates_prestige_lists(page_rank_results)
     candidates_copy = candidates.copy()
     prestige_copy = prestige.copy()
 
-    if len(candidates) < 5:
+    if len(candidates) < n:
         return candidates
 
     else:
         keyphrases = []
 
-        while len(keyphrases) < 5:
+        while len(keyphrases) < n:
             arg_max = np.argmax(prestige_copy)
             keyphrases.append(candidates_copy[arg_max])
             candidates_copy = np.delete(candidates_copy, arg_max)
