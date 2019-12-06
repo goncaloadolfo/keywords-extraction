@@ -34,20 +34,21 @@ recall:
 mean_average_precision: 
 processing_time:
 
+Note: processing time before a bug found increasing processing time
 ## weight_method=str_similarity && priors=uniform
-precision: 
-recall: 
-mean_average_precision:  
-processing_time:
+precision: 0.65
+recall: 0.40
+mean_average_precision: 0.34  
+processing_time: 3576s
 
 ## weight_method=str_similariry && priors=sentence_pos
-precision:
-recall:
-mean_average_precision: 
-processing_time:
+precision: 0.69
+recall: 0.43
+mean_average_precision: 0.38 
+processing_time: 3993s
 
 ## weight_method=str_similarity && priors=tfidf
-precision:
-recall:
-mean_average_precision: 
-processing_time:
+precision: 0.72
+recall: 0.44
+mean_average_precision: 0.40 
+processing_time: 3614s

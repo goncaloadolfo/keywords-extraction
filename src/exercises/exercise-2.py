@@ -3,6 +3,7 @@ Exercise 2 - Improvement of graph ranking; evaluation of
 different approaches on a data set.
 """
 
+import pickle
 import time
 
 import networkx as nx
@@ -10,7 +11,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from doc_reader import read_dataset_from_pickle, DATASET_PICKLE_PATH
 from evaluation_functions import *
-from graph_constructor import GraphBuilder, UNITARY_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS
+from graph_constructor import GraphBuilder, UNITARY_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, \
+    WORDS_VECTOR_PICKLE
 from utils import sentence_pos_priors, tfidf_priors, reduce_tfidf_array, get_keyphrases, PRIORS_UNIFORM, \
     PRIORS_SENTENCE_POS, PRIORS_TFIDF
 
@@ -19,7 +21,7 @@ t0 = time.time()
 ###
 # system parameters
 n = 1  # 1 <= n <= 3
-weight_method = CANDIDATE_SIMILARITY_WEIGHTS  # {UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS}
+weight_method = UNITARY_WEIGHTS  # {UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CANDIDATE_SIMILARITY_WEIGHTS}
 priors_method = PRIORS_UNIFORM  # {PRIORS_UNIFORM, PRIORS_SENTENCE_POS, PRIORS_TFIDF}
 ###
 
@@ -37,14 +39,19 @@ vocab = np.array(tfidf_obj.get_feature_names())
 # evaluate
 results = {}
 
+vectors = None
+if weight_method == CANDIDATE_SIMILARITY_WEIGHTS:
+    with open("../" + WORDS_VECTOR_PICKLE, "rb") as file:
+        vectors = pickle.load(file)
+
 for doc_id_index in range(len(doc_ids)):
-    print("document {}/{}".format(doc_id_index, len(all_docs)))
+    print("document {}/{}".format(doc_id_index, len(doc_ids)))
     doc_id = doc_ids[doc_id_index]
     doc = all_docs[doc_id]
     candidates = tfidf_obj.fit([doc]).get_feature_names()
 
     # build graph
-    graph_obj = GraphBuilder(doc, collection, candidates, weight_method, n)
+    graph_obj = GraphBuilder(doc, collection, candidates, weight_method, n, vectors)
     doc_graph = graph_obj.build_graph()
 
     # page rank
@@ -57,7 +64,7 @@ for doc_id_index in range(len(doc_ids)):
 
     else:
         priors = tfidf_priors(candidates, reduce_tfidf_array(vocab, tfidf_array[doc_id_index], candidates))
-        final_prestige = nx.pagerank(doc_graph, personalization=priors, max_iter=50, weight='weight')
+        final_prestige = nx.pagerank(doc_graph, personalization=priors, max_iter=100, weight='weight')
 
     # top 5 key phrases
     keyphrases = get_keyphrases([final_prestige])

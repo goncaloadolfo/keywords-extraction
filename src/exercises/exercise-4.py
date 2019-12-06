@@ -36,7 +36,7 @@ weight_method = UNITARY_WEIGHTS  # {UNITARY_WEIGHTS, CO_OCCURRENCES_WEIGHTS, CAN
 priors_method = PRIORS_UNIFORM  # {PRIORS_UNIFORM, PRIORS_SENTENCE_POS, PRIORS_TFIDF}
 
 # others
-NR_TRENDS_KPS = 10
+NR_TRENDS_KPS = 30
 
 
 class PageHandler(RequestHandler):
@@ -45,7 +45,6 @@ class PageHandler(RequestHandler):
         rss = request_rss()
         articles = read_news(rss)
         trends = trends_kps(articles)
-        print(trends)
         keyphrases = extract_keyphrases(articles)
         ocurrences = count_ocurrences(keyphrases)
         dict_encoded_articles = dict_encode(articles, keyphrases)
@@ -89,7 +88,7 @@ def read_news(xml_rss: str) -> list:
 
 def graph_kps_system(document: str, want_scores=False):
     candidates = TfidfVectorizer(stop_words="english", ngram_range=(1, n)).fit([document]).get_feature_names()
-    doc_graph = GraphBuilder(document, None, candidates, weight_method, n).build_graph()
+    doc_graph = GraphBuilder(document, None, candidates, weight_method, n, None).build_graph()
     final_prestige = pagerank(doc_graph, alpha=1.0 - d, max_iter=max_iter, weight='weight')
 
     if not want_scores:

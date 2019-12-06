@@ -4,7 +4,6 @@ Graph formulation and page rank config: uniform priors and uniform weights.
 """
 
 import pickle
-import time
 
 import numpy as np
 from networkx import pagerank
@@ -16,13 +15,31 @@ from evaluation_functions import model_evaluation, ground_truth_reader, \
 from graph_constructor import GraphBuilder, UNITARY_WEIGHTS
 from utils import get_keyphrases
 
-CANDIDATES_VECTORS_PICKLE_PATH = "../files/candidates_vectors.p"
+# tf and idf
+FEATURES1_PATH = "../files/ex3_features1.p"
+FEATURES1_MASK = np.array([True, True, False, False])
+
+# tf, idf and tf-idf
+FEATURES2_PATH = "../files/ex3_features2.p"
+FEATURES2_MASK = np.array([True, True, True, False])
+
+# tf-idf and pr
+FEATURES3_PATH = "../files/ex3_features3.p"
+FEATURES3_MASK = np.array([False, False, True, True])
+
+# tf, idf, tf-idf, pr
+FEATURES4_PATH = "../files/ex3_features4.p"
+FEATURES4_MASK = np.array([True, True, True, True])
+
+
+FEATURES_PATHS = [FEATURES1_PATH, FEATURES2_PATH, FEATURES3_PATH, FEATURES4_PATH]
+MASKS = [FEATURES1_MASK, FEATURES2_MASK, FEATURES3_MASK, FEATURES4_MASK]
 VOCAB_KEY = "vocab"
 VECTORS_KEY = "vectors"
 n = 1
 
 
-def candidate_vectors(document: str, background_collection: list) -> tuple:
+def candidate_vectors(document: str, background_collection: list, mask) -> tuple:
     # get candidates and tf
     counter = CountVectorizer(stop_words="english", ngram_range=(1, n))
     tf = counter.fit_transform([document]).toarray()[0]
@@ -36,7 +53,7 @@ def candidate_vectors(document: str, background_collection: list) -> tuple:
     idf = tfidf_obj.idf_
 
     # centrality
-    doc_graph = GraphBuilder(document, background_collection, vocab, UNITARY_WEIGHTS, n).build_graph()
+    doc_graph = GraphBuilder(document, background_collection, vocab, UNITARY_WEIGHTS, n, None).build_graph()
     centrality_dict = pagerank(doc_graph, max_iter=50, weight='weight')
 
     # vector for each candidate
@@ -47,12 +64,14 @@ def candidate_vectors(document: str, background_collection: list) -> tuple:
         tfidf_value = tfidf[vocab_i]
         centrality = centrality_dict[vocab[vocab_i]]
         centrality = centrality if type(centrality) == float else centrality[0][0]
-        vectors.append([tf_value, idf_value, tfidf_value, centrality])
+
+        vector = np.array([tf_value, idf_value, tfidf_value, centrality])
+        vectors.append(vector[mask])
 
     return vocab, vectors
 
 
-def save_dataset_vectors(pickle_path: str) -> None:
+def save_dataset_vectors(pickle_path: str, mask: np.ndarray) -> None:
     train_docs, test_docs = read_dataset_from_pickle("../" + DATASET_PICKLE_PATH)
     all_docs = {**train_docs, **test_docs}
 
@@ -65,7 +84,7 @@ def save_dataset_vectors(pickle_path: str) -> None:
         print("calculating vectors to doc {}/{}".format(i, len(doc_ids)))
         i += 1
         document = all_docs[doc_id]
-        vocab, vectors = candidate_vectors(document, all_docs_list)
+        vocab, vectors = candidate_vectors(document, all_docs_list, mask)
         d[doc_id] = {VOCAB_KEY: vocab, VECTORS_KEY: np.array(vectors)}
 
     with open(pickle_path, "wb") as file:
@@ -79,11 +98,11 @@ def doc_keyphrases(vocab: np.ndarray, scores: np.ndarray) -> list:
     return get_keyphrases([scores_dict])
 
 
-def simple_document_test(document_path: str) -> list:
+def simple_document_test(document_path: str, mask: np.ndarray) -> list:
     document = read_doc_from_disk(document_path)
     train_docs, test_docs = read_dataset_from_pickle("../" + DATASET_PICKLE_PATH)
     background_collection = list({**train_docs, **test_docs}.values())
-    vocab, candid_vectors = candidate_vectors(document, background_collection)
+    vocab, candid_vectors = candidate_vectors(document, background_collection, mask)
     kps = doc_keyphrases(vocab, np.array(candid_vectors))
 
     print("Document: ", document)
@@ -95,40 +114,41 @@ def simple_document_test(document_path: str) -> list:
 
 
 def main():
-    # save_dataset_vectors(CANDIDATES_VECTORS_PICKLE_PATH)
+    # save_dataset_vectors(FEATURES1_PATH, FEATURES1_MASK)
+    # save_dataset_vectors(FEATURES2_PATH, FEATURES2_MASK)
+    # save_dataset_vectors(FEATURES3_PATH, FEATURES3_MASK)
+    # save_dataset_vectors(FEATURES4_PATH, FEATURES4_MASK)
 
-    simple_document_test("../" + TEST_DOCUMENT_PATH)
+    simple_document_test("../" + TEST_DOCUMENT_PATH, FEATURES4_MASK)
 
-    t0 = time.time()
-    v: dict
-    with open(CANDIDATES_VECTORS_PICKLE_PATH, "rb") as file:
-        v = pickle.load(file)
+    for features_pickle_path in FEATURES_PATHS:
+        v: dict
+        with open(features_pickle_path, "rb") as file:
+            v = pickle.load(file)
 
-    docs_ids = list(v.keys())
-    results = {}
+        docs_ids = list(v.keys())
+        results = {}
 
-    # get keyphrases for each document
-    for doc_id_i in range(len(docs_ids)):
-        print("Getting key phrases for document {}/{}".format(doc_id_i, len(docs_ids)))
-        doc_id = docs_ids[doc_id_i]
-        doc_dict = v[doc_id]
+        # get keyphrases for each document
+        for doc_id_i in range(len(docs_ids)):
+            doc_id = docs_ids[doc_id_i]
+            doc_dict = v[doc_id]
 
-        doc_vocab = doc_dict[VOCAB_KEY]
-        doc_vectors = doc_dict[VECTORS_KEY]
-        doc_kps = doc_keyphrases(doc_vocab, doc_vectors)
-        results[doc_id] = doc_kps
+            doc_vocab = doc_dict[VOCAB_KEY]
+            doc_vectors = doc_dict[VECTORS_KEY]
+            doc_kps = doc_keyphrases(doc_vocab, doc_vectors)
+            results[doc_id] = doc_kps
 
-    # evaluation results
-    train_gt = ground_truth_reader("../" + TRAIN_GT_PATH)
-    test_gt = ground_truth_reader("../" + TEST_GT_PATH)
-    gt = {**train_gt, **test_gt}
-    evaluation_results = model_evaluation(results, gt, soft=True)
-    timestamp = time.time() - t0
+        # evaluation results
+        train_gt = ground_truth_reader("../" + TRAIN_GT_PATH)
+        test_gt = ground_truth_reader("../" + TEST_GT_PATH)
+        gt = {**train_gt, **test_gt}
+        evaluation_results = model_evaluation(results, gt, soft=True)
 
-    print("precision: ", evaluation_results[MEAN_PRECISION_KEY])
-    print("recall: ", evaluation_results[MEAN_RECALL_KEY])
-    print("mean average precision: ", evaluation_results[MEAN_AVERAGE_PRECISION_KEY])
-    print("processing time: ", timestamp)
+        print("evaluation for features pickle: ", features_pickle_path)
+        print("precision: ", evaluation_results[MEAN_PRECISION_KEY])
+        print("recall: ", evaluation_results[MEAN_RECALL_KEY])
+        print("mean average precision: ", evaluation_results[MEAN_AVERAGE_PRECISION_KEY])
 
 
 if __name__ == "__main__":

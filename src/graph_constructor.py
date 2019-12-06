@@ -48,7 +48,7 @@ def load_vectors(fname, n_words):
 class GraphBuilder:
 
     def __init__(self, document: str, background_collection: list, candidates: np.ndarray, weight_method: int,
-                 n: int) -> None:
+                 n: int, words_vectors: dict) -> None:
         # validate parameters
         if document is None:
             raise ValueError(NONE_DOCUMENT_EXCEPTION)
@@ -71,6 +71,7 @@ class GraphBuilder:
         self.__background_collection = background_collection
         self.__candidates = np.array(candidates)
         self.__n = n
+        self.__words_vectors = words_vectors
         self.__weight_matrix = self.__calculate_weight_matrix(weight_method)
         self.__current_sentence_nodes = []
         self.__graph = nx.Graph()
@@ -167,24 +168,23 @@ class GraphBuilder:
 
         elif weight_method == CANDIDATE_SIMILARITY_WEIGHTS:
             sim_matrix = np.zeros((nr_candidates, nr_candidates), dtype=float)
-            vectors: dict
-
-            with open("../" + WORDS_VECTOR_PICKLE, "rb") as file:
-                vectors = pickle.load(file)
-
-            possible_words = vectors.keys()
+            possible_words = self.__words_vectors.keys()
 
             for c1_i in range(nr_candidates):
                 for c2_i in range(nr_candidates):
-                    candidate1 = self.__candidates[c1_i]
-                    candidate2 = self.__candidates[c2_i]
+                    if sim_matrix[c2_i, c1_i] != 0:
+                        sim_matrix[c1_i, c2_i] = sim_matrix[c2_i, c1_i]
 
-                    c1_vector = GraphBuilder.candidate_vector(vectors, possible_words, candidate1)
-                    c2_vector = GraphBuilder.candidate_vector(vectors, possible_words, candidate2)
+                    else:
+                        candidate1 = self.__candidates[c1_i]
+                        candidate2 = self.__candidates[c2_i]
 
-                    if c1_vector is not None and c2_vector is not None:
-                        cosine_sim = -cosine(c1_vector, c2_vector) + 1
-                        sim_matrix[c1_i, c2_i] = cosine_sim
+                        c1_vector = GraphBuilder.candidate_vector(self.__words_vectors, possible_words, candidate1)
+                        c2_vector = GraphBuilder.candidate_vector(self.__words_vectors, possible_words, candidate2)
+
+                        if c1_vector is not None and c2_vector is not None:
+                            cosine_sim = -cosine(c1_vector, c2_vector) + 1
+                            sim_matrix[c1_i, c2_i] = cosine_sim
 
             return sim_matrix
 

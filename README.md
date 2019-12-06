@@ -9,6 +9,10 @@
 + It applies the same system but with variants trying to improve results; 
 + The results from exercise-1 and this exercise are represented in a txt file localed in results dir and it uses a dataset with 1500 abstract documents.
 
+## Exercise 3
++ Run exercise-3.py file in src/exercises/
++ It applies another approach to key phrases extraction: rank aggregation
+
 ## Exercise 4
 
 + Tornado package is necessary;

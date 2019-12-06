@@ -18,7 +18,7 @@ max_iter = 50
 document = read_doc_from_disk("../" + TEST_DOCUMENT_PATH)
 candidates = TfidfVectorizer(stop_words="english", ngram_range=(1, n)).fit([document]).get_feature_names()
 
-graph_builder_obj = GraphBuilder(document, None, candidates, UNITARY_WEIGHTS, n)
+graph_builder_obj = GraphBuilder(document, None, candidates, UNITARY_WEIGHTS, n, None)
 doc_graph = graph_builder_obj.build_graph()
 
 final_prestige = nx.pagerank(doc_graph, alpha=1.0-d, max_iter=max_iter, weight='weight')

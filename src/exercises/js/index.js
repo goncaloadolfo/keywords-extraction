@@ -5,10 +5,11 @@ const ACTIVE_KP_CLASS = "list-group-item d-flex justify-content-between align-it
 const KP_CLASS = "list-group-item d-flex justify-content-between align-items-center"
 
 const WORD_CLOUD_ID = "word_cloud"
-const WORD_CLOUD_WIDTH = "450px"
-const WORD_CLOUD_HEIGHT = "450px"
-const WORD_MAX_SIZE = "60"
-const WORD_MIN_SIZE = "20"
+const WORD_CLOUD_WIDTH = 600
+const WORD_CLOUD_HEIGHT = 600
+const WORD_MAX_SIZE = 60
+const WORD_MIN_SIZE = 20
+const WORD_PADDING = 10
 
 var articlesJson
 var selectedKps = []
@@ -33,8 +34,6 @@ function onloadHandler(articles, trends) {
     createWordCloud(trends)
 }
 
-// ##########
-// key phrase selection event functions
 function selectedKP(element) {
     classStr = element.className
     kp = element.getAttribute("name")
@@ -91,11 +90,53 @@ function updateArticlesList() {
     newArticles.forEach(article => { addArticleElement(article) })
 }
 
-// ######
-// Word Cloud functions
+function wordCloudLayout(words){
+    let layout = d3.layout.cloud()
+        .size([WORD_CLOUD_WIDTH, WORD_CLOUD_HEIGHT])
+        .words(words)
+        .padding(WORD_PADDING)
+        .rotate(() => { return ~~(Math.random() * 2) * 90 })  // random rotation
+        .fontSize((w) => { return w.size })      
+        .on('end', drawWords)
+    layout.start()
+
+    function drawWords(words){
+        d3.select("#" + WORD_CLOUD_ID)
+            .attr('width', WORD_CLOUD_WIDTH)
+            .attr('height', WORD_CLOUD_HEIGHT)
+            .append("g")
+            .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
+            .selectAll("text")
+            .data(words)
+            .enter().append("text")
+            .style("font-size", (w) => { return w.size })
+            .style("fill", "black")
+            .attr("text-anchor", "middle")
+            .attr("transform", (w) => {
+                return "translate(" + [w.x, w.y] + ")rotate(" + w.rotate + ")"
+            })
+            .text((w) => { return w.text })
+    }
+}
+
 function createWordCloud(trends) {
+    // parse json object
     let jsonTrends = JSON.parse(trends)
-    let words = Object.keys(jsonTrends)
-    console.log(jsonTrends)
-    console.log(words)
+    let prestiges = Object.values(jsonTrends)
+    let keys = Object.keys(jsonTrends)
+
+    // calculate word sizes
+    let minPrestige = prestiges.reduce((prev, current) => {return Math.min(prev, current)})
+    let maxPrestige = prestiges.reduce((prev, current) => {return Math.max(prev, current)})
+    let diffPrest = maxPrestige - minPrestige
+    let diffSize = WORD_MAX_SIZE - WORD_MIN_SIZE
+
+    let wordSizes = []
+    keys.forEach(key => {  
+        let prestige = jsonTrends[key]
+        let diffCurrentSize = diffSize * (maxPrestige - prestige) / diffPrest
+        wordSizes.push({text: key, size: WORD_MAX_SIZE - diffCurrentSize})  
+    })
+
+    wordCloudLayout(wordSizes)
 }
